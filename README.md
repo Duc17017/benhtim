@@ -1,213 +1,141 @@
-# Dự án Khai Phá Dữ Liệu Bán Hàng Superstore
+# Đề 2: Dự đoán Bệnh Tim (Heart Disease Prediction)
 
-## 📊 Tổng Quan Dự Án
-
-Đây là dự án khai phá dữ liệu toàn diện để phân tích dữ liệu bán hàng của chuỗi siêu thị (Superstore) bằng các kỹ thuật machine learning và data mining. Dự án là một phần của môn học Big Data & Data Mining (Học Kì II, 2025-2026).
-
-### Nguồn Dữ Liệu
-
-- **Nguồn**: Kaggle Superstore Sales Dataset
-- **Số bản ghi**: ~5.000+ giao dịch
-- **Các trường**: Order ID, Thông tin khách hàng, Thông tin sản phẩm, Doanh số, Lợi nhuận, v.v.
+**Học phần:** Khai phá Dữ liệu | **HK II – 2025–2026**  
+**Giảng viên:** Nguyễn Ngọc ÂN
+**Dataset:** [UCI/Kaggle Heart Disease Dataset](https://www.kaggle.com/datasets/johnsmith88/heart-disease-dataset)
 
 ---
 
-## 🎯 Mục Tiêu Dự Án
+## Mục tiêu
 
-1. **EDA & Tiền xử lý**: Làm sạch dữ liệu, xử lý giá trị thiếu, outliers, mã hóa, chuẩn hóa
-2. **Xây dựng đặc trưng**: Phân tích RFM, tạo dữ liệu giỏ hàng
-3. **Luật kết hợp**: Phân tích giỏ hàng bằng thuật toán Apriori
-4. **Phân cụm**: Phân khúc khách hàng bằng K-Means và HAC
-5. **Phân loại**: Dự đoán phân khúc khách hàng bằng Logistic Regression, Decision Tree, Random Forest
-6. **Dự báo**: Dự báo doanh số chuỗi thời gian bằng ARIMA, Holt-Winters
-7. **Đánh giá**: So sánh mô hình, đưa ra insights có thể hành động
+Xây dựng pipeline khai phá dữ liệu y tế để:
+1. Phát hiện tổ hợp triệu chứng bệnh tim bằng **Association Rules (Apriori)**
+2. Phân nhóm bệnh nhân theo mức độ nguy cơ bằng **Clustering (KMeans/HAC)**
+3. Phân lớp nguy cơ bệnh tim bằng **SVM / Random Forest / XGBoost**
+4. Thực nghiệm **bán giám sát** (self-training / label spreading) với ít nhãn
+5. Hồi quy chỉ số sức khỏe (huyết áp, cholesterol) theo yếu tố nguy cơ
 
 ---
 
-## 📁 Cấu Trúc Dự Án
+## Cấu trúc thư mục
 
 ```
-DATA_MINING_PROJECT/
-├── README.md                 # File này
-├── requirements.txt          # Các thư viện Python cần thiết
+de2_heart_disease/
+├── README.md
+├── requirements.txt
+├── .gitignore
 ├── configs/
-│   └── params.yaml          # Tham số cấu hình
+│   └── params.yaml              # Toàn bộ tham số pipeline
 ├── data/
-│   ├── raw/                # Dữ liệu thô (không đưa lên git)
-│   └── processed/          # Dữ liệu đã xử lý
+│   ├── raw/                     # Dữ liệu gốc (heart.csv)
+│   └── processed/               # Dữ liệu đã xử lý (.parquet)
 ├── notebooks/
-│   ├── 01_eda.ipynb        # Phân tích dữ liệu khám phá (EDA)
-│   ├── 02_preprocess_feature.ipynb  # Tiền xử lý & Đặc trưng
-│   ├── 03_mining_clustering.ipynb  # Khai phá & Phân cụm
-│   ├── 04_modeling.ipynb    # Phân loại & Dự báo
-│   └── 05_evaluation_report.ipynb  # Đánh giá & Báo cáo
+│   ├── 01_eda.ipynb
+│   ├── 02_preprocess_feature.ipynb
+│   ├── 03_mining_clustering.ipynb
+│   ├── 04_modeling.ipynb
+│   ├── 04b_semi_supervised.ipynb
+│   └── 05_evaluation_report.ipynb
 ├── src/
-│   ├── __init__.py
 │   ├── data/
-│   │   ├── __init__.py
-│   │   ├── loader.py       # Tải dữ liệu
-│   │   └── cleaner.py      # Làm sạch dữ liệu
+│   │   ├── loader.py            # Đọc dữ liệu, kiểm tra schema
+│   │   └── cleaner.py           # Xử lý missing, outlier, encoding
 │   ├── features/
-│   │   ├── __init__.py
-│   │   └── builder.py      # Xây dựng đặc trưng (RFM, Basket)
+│   │   └── builder.py           # Feature engineering, rời rạc hoá
 │   ├── mining/
-│   │   ├── __init__.py
-│   │   ├── association.py  # Thuật toán Apriori
-│   │   └── clustering.py   # K-Means, HAC
+│   │   ├── association.py       # Apriori / FP-Growth + luật kết hợp
+│   │   └── clustering.py        # KMeans / HAC / DBSCAN + profiling
 │   ├── models/
-│   │   ├── __init__.py
-│   │   ├── supervised.py   # Mô hình phân loại
-│   │   └── forecasting.py  # Mô hình dự báo chuỗi thời gian
+│   │   ├── supervised.py        # Train/predict classification + regression
+│   │   └── semi_supervised.py   # Self-training + Label Spreading
 │   ├── evaluation/
-│   │   ├── __init__.py
-│   │   ├── metrics.py      # Các chỉ số đánh giá
-│   │   └── report.py       # Tạo báo cáo
+│   │   ├── metrics.py           # Accuracy, F1, PR-AUC, ROC-AUC, RMSE, MAE
+│   │   └── report.py            # Tổng hợp bảng / biểu đồ kết quả
 │   └── visualization/
-│       ├── __init__.py
-│       └── plots.py        # Các hàm vẽ biểu đồ
+│       └── plots.py             # Hàm vẽ dùng chung
 ├── scripts/
-│   └── run_pipeline.py     # Chạy pipeline chính
-├── app/
-│   └── streamlit_app.py    # Dashboard Streamlit
+│   ├── run_pipeline.py          # Chạy toàn bộ pipeline
+│   └── run_papermill.py         # Chạy notebook bằng papermill
 └── outputs/
-    ├── figures/            # Các biểu đồ đã tạo
-    ├── tables/             # Các bảng đã tạo
-    ├── models/             # Các mô hình đã lưu
-    └── reports/            # Báo cáo cuối cùng
+    ├── figures/
+    ├── tables/
+    ├── models/
+    └── reports/
 ```
 
 ---
 
-## 🚀 Cài Đặt
+## Hướng dẫn cài đặt & chạy
 
-### 1. Tạo môi trường ảo (khuyến nghị)
-
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# Linux/Mac
-python -m venv venv
-source venv/bin/activate
-```
-
-### 2. Cài đặt các thư viện
+### 1. Cài đặt môi trường
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
+### 2. Tải dataset
 
-## 📝 Cách Sử Dụng
+Tải dataset từ Kaggle: [Heart Disease Dataset](https://www.kaggle.com/datasets/johnsmith88/heart-disease-dataset)
 
-### Chạy Pipeline Chính
+Đặt file `heart.csv` vào `data/raw/heart.csv`
+
+Hoặc dùng Kaggle API:
+```bash
+kaggle datasets download -d johnsmith88/heart-disease-dataset -p data/raw/ --unzip
+```
+
+### 3. Cập nhật cấu hình (nếu cần)
+
+Chỉnh đường dẫn dữ liệu trong `configs/params.yaml`.
+
+### 4. Chạy toàn bộ pipeline
 
 ```bash
 python scripts/run_pipeline.py
 ```
 
-### Chạy Jupyter Notebooks
+### 5. Chạy notebook bằng papermill (tái lập đầy đủ)
 
 ```bash
-jupyter notebook notebooks/01_eda.ipynb
+python scripts/run_papermill.py
 ```
 
-Chạy notebooks theo thứ tự:
-1. `01_eda.ipynb` - Phân tích dữ liệu khám phá (EDA)
-2. `02_preprocess_feature.ipynb` - Tiền xử lý dữ liệu
-3. `03_mining_clustering.ipynb` - Khai phá dữ liệu và phân cụm
-4. `04_modeling.ipynb` - Xây dựng mô hình
-5. `05_evaluation_report.ipynb` - Đánh giá và báo cáo
 
-### Chạy Dashboard Streamlit
+### 6. Mở notebook thủ công (theo thứ tự)
 
-```bash
-streamlit run app/streamlit_app.py
+```
+01_eda.ipynb → 02_preprocess_feature.ipynb → 03_mining_clustering.ipynb
+→ 04_modeling.ipynb → 04b_semi_supervised.ipynb → 05_evaluation_report.ipynb
 ```
 
 ---
 
-## 📊 Kết Quả Chính
+## Data Dictionary
 
-### Mô hình Phân Loại
+| Cột | Kiểu | Ý nghĩa |
+|-----|------|---------|
+| age | int | Tuổi bệnh nhân |
+| sex | int | Giới tính (0=Nữ, 1=Nam) |
+| cp | int | Loại đau ngực (0=Typical Angina, 1=Atypical, 2=Non-anginal, 3=Asymptomatic) |
+| trestbps | int | Huyết áp nghỉ ngơi (mmHg) |
+| chol | int | Cholesterol huyết thanh (mg/dl) |
+| fbs | int | Đường huyết lúc đói > 120mg/dl (0=Không, 1=Có) |
+| restecg | int | Kết quả ECG nghỉ ngơi (0=Normal, 1=ST-T wave abnormality, 2=LV hypertrophy) |
+| thalach | int | Nhịp tim tối đa đạt được |
+| exang | int | Đau ngực khi tập thể dục (0=Không, 1=Có) |
+| oldpeak | float | ST depression khi tập so với nghỉ |
+| slope | int | Độ dốc của đỉnh ST khi tập (0=Upsloping, 1=Flat, 2=Downsloping) |
+| ca | int | Số mạch máu lớn được tô màu bằng fluoroscopy (0–3) |
+| thal | int | Thalassemia (0=Normal, 1=Fixed defect, 2=Reversible defect, 3=Unknown) |
+| **target** | **int** | **Bệnh tim (0=Không, 1=Có)** ← biến mục tiêu |
 
-| Mô hình | Accuracy | F1-Macro | ROC-AUC |
-|---------|----------|----------|---------|
-| Logistic Regression | 0.85 | 0.82 | 0.88 |
-| Decision Tree | 0.87 | 0.85 | 0.86 |
-| **Random Forest** | **0.92** | **0.90** | **0.94** |
-
-### Phân Cụm
-
-- **Số cụm tốt nhất**: 4 cụm
-- **Silhouette Score**: 0.45
-- **DBI**: 1.2
-
-### Dự Báo
-
-| Mô hình | MAE | RMSE | sMAPE |
-|---------|-----|------|-------|
-| Naive | 1500 | 1800 | 15% |
-| MA-4 | 1200 | 1500 | 12% |
-| ARIMA | 950 | 1200 | 9% |
-| **Holt-Winters** | **880** | **1100** | **8%** |
-
----
-
-## 💡 Insights Kinh Doanh
-
-1. **Champions** (12% khách hàng) - Nhóm khách hàng giá trị cao nhất, ưu tiên chương trình loyalty
-2. **At Risk** (15% khách hàng) - Cần chiến dịch giành lại ngay lập tức
-3. **Cơ hội bán chéo**: Giới thiệu sản phẩm Technology cho khách hàng mua Furniture
-4. **Mùa vụ**: Doanh số cao hơn vào tháng 11-12 (mùa lễ hội)
-5. **Tập trung marketing** vào các phân khúc khách hàng giá trị cao, tần suất cao
+**Rủi ro dữ liệu:**
+- Mất cân bằng lớp nhẹ (cần kiểm tra)
+- Một số cột có giá trị 0 bất thường (ca, thal)
+- Không có data leakage rõ ràng (tất cả đặc trưng là đầu vào lâm sàng)
 
 ---
 
-## 🔧 Công Nghệ Sử Dụng
+## Kết quả nổi bật
 
-- **Python 3.8+**
-- **Pandas**, **NumPy** - Xử lý dữ liệu
-- **Scikit-learn** - Machine learning
-- **MLxtend** - Thuật toán Apriori
-- **Statsmodels** - ARIMA, Holt-Winters
-- **Matplotlib**, **Seaborn** - Trực quan hóa
-- **Streamlit** - Dashboard web
-
----
-
-## 📝 Ghi Chú
-
-- Dữ liệu có thể tải từ: [Kaggle Superstore Sales](https://www.kaggle.com/datasets/rohitsahoo/sales-forecasting)
-- Để demo, dữ liệu mẫu được tự động tạo ra
-- Để sử dụng dữ liệu thực, đặt file CSV vào thư mục `data/raw/`
-
----
-
-## 👥 Người hướng dẫn
-
-- Dự án cho môn Big Data & Data Mining
-- Giảng viên: Nguyễn Ngọc Ân
-
----
-
-## 📌 Hướng Dẫn Chạy Demo
-
-1. **Tải dữ liệu mẫu** (tự động):
-   ```python
-   from src.data.loader import DataLoader
-   loader = DataLoader()
-   df = loader.generate_sample_data(n_orders=5000)
-   ```
-
-2. **Chạy toàn bộ pipeline**:
-   ```bash
-   python scripts/run_pipeline.py
-   ```
-
-3. **Mở Dashboard**:
-   ```bash
-   streamlit run app/streamlit_app.py
-   ```
+Xem `outputs/reports/` sau khi chạy pipeline.
